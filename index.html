@@ -1258,6 +1258,11 @@ async function loadFromSheet() {
 
     console.log('Portfolio: ' + data.length + ' righe caricate dal Sheet');
     if (data.length === 0) { render(HISTORY); return; }
+
+    // Merge indici da HISTORY (fonte locale verificata) nei dati Sheet
+    const idxMap = {};
+    HISTORY.forEach(r => { if (r.sp500) idxMap[r.data] = {sp500: r.sp500, nasdaq: r.nasdaq, dow: r.dow}; });
+    data.forEach(r => { if (idxMap[r.data]) Object.assign(r, idxMap[r.data]); });
     render(data);
   } catch (e) {
     console.warn('Sheet non raggiungibile, uso dati locali:', e.message);
