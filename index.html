@@ -1220,10 +1220,8 @@ function renderCharts(data) {
 // FETCH DA GOOGLE SHEET (quando configurato)
 // ────────────────────────────────────────────────
 async function loadFromSheet() {
-  if (CONFIG.SHEET_ID === 'INSERISCI_QUI_ID_GOOGLE_SHEET') {
-    render(HISTORY);
-    return;
-  }
+  render(HISTORY);
+  return;
   try {
     const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${CONFIG.SHEET_DATA_TAB}`;
     const resp = await fetch(url);
@@ -1258,11 +1256,6 @@ async function loadFromSheet() {
 
     console.log('Portfolio: ' + data.length + ' righe caricate dal Sheet');
     if (data.length === 0) { render(HISTORY); return; }
-
-    // Merge indici da HISTORY (fonte locale verificata) nei dati Sheet
-    const idxMap = {};
-    HISTORY.forEach(r => { if (r.sp500) idxMap[r.data] = {sp500: r.sp500, nasdaq: r.nasdaq, dow: r.dow}; });
-    data.forEach(r => { if (idxMap[r.data]) Object.assign(r, idxMap[r.data]); });
     render(data);
   } catch (e) {
     console.warn('Sheet non raggiungibile, uso dati locali:', e.message);
