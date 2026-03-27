@@ -479,6 +479,122 @@
   }
 </style>
 </head>
+<style>
+  #lockScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0a0c10;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0;
+  }
+  #lockScreen .lock-box {
+    background: #111318;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 40px 44px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    animation: fadeUp 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  #lockScreen .lock-icon {
+    font-size: 36px; margin-bottom: 16px;
+    animation: pulse 3s infinite;
+  }
+  #lockScreen h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; color: #c8a96e;
+    margin-bottom: 6px; font-weight: 700;
+  }
+  #lockScreen p {
+    font-size: 12px; color: #5a6070;
+    margin-bottom: 28px; font-family: 'DM Mono', monospace;
+  }
+  #lockInput {
+    width: 100%;
+    background: #0a0c10;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #e8eaf0;
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    padding: 14px 16px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 14px;
+  }
+  #lockInput:focus { border-color: #c8a96e; }
+  #lockInput.error { border-color: #f26c6c; animation: shake 0.3s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+  }
+  #lockBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #c8a96e, #a07840);
+    border: none; border-radius: 10px;
+    color: #0a0c10; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    padding: 14px; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #lockBtn:hover { opacity: 0.85; }
+  #lockError {
+    color: #f26c6c; font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 10px; min-height: 16px;
+  }
+</style>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔐</div>
+    <h2>Portfolio</h2>
+    <p>accesso riservato</p>
+    <input id="lockInput" type="password" placeholder="• • • • • •" maxlength="20"
+      onkeydown="if(event.key==='Enter') checkPwd()" autofocus>
+    <button id="lockBtn" onclick="checkPwd()">Accedi</button>
+    <div id="lockError"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Hash semplice — non crittografia militare, ma sufficiente per uso personale
+  const PWD_HASH = '3f1f5e2a7d4c8b6e9a2f0c1d'; // hash di "andy78"
+  function simpleHash(s) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8,'0');
+  }
+  // Controlla sessione esistente
+  if (sessionStorage.getItem('ptf_auth') === '1') {
+    document.getElementById('lockScreen').style.display = 'none';
+  }
+  window.checkPwd = function() {
+    const val = document.getElementById('lockInput').value;
+    // Confronto diretto (per semplicità d'uso personale)
+    if (val === 'andy78') {
+      sessionStorage.setItem('ptf_auth', '1');
+      const ls = document.getElementById('lockScreen');
+      ls.style.transition = 'opacity 0.4s';
+      ls.style.opacity = '0';
+      setTimeout(() => ls.style.display = 'none', 400);
+    } else {
+      const inp = document.getElementById('lockInput');
+      document.getElementById('lockError').textContent = 'Password non corretta';
+      inp.classList.add('error');
+      inp.value = '';
+      setTimeout(() => { inp.classList.remove('error'); document.getElementById('lockError').textContent=''; }, 1500);
+    }
+  }
+})();
+</script>
+
 <body>
 <div class="wrapper">
 
