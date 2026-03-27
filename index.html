@@ -773,7 +773,7 @@
 // CONFIGURAZIONE — modifica questi valori
 // ────────────────────────────────────────────────
 const CONFIG = {
-  SHEET_ID: '1NVimbT6TrnXYqJxGzoqBS_2rxvng0NA2Qz7S4Eic_eI'
+  SHEET_ID: '1NVimbT6TrnXYqJxGzoqBS_2rxvng0NA2Qz7S4Eic_eI',
   SHEET_DATA_TAB: 'DATA',
   SHEET_CRYPTO_TAB: 'CRYPTO',
   PTF_2025: 3812000,    // valore PTF al 31/12/2025
@@ -1052,8 +1052,19 @@ async function loadFromSheet() {
     const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\)/s)[1]);
     const rows = json.table.rows;
 
+    // Google Sheets gviz restituisce date come "Date(2026,2,26)" (mese 0-based)
+    function parseGvizDate(v) {
+      if (!v) return '';
+      if (typeof v === 'string' && v.startsWith('Date(')) {
+        const parts = v.replace('Date(','').replace(')','').split(',').map(Number);
+        const d = new Date(parts[0], parts[1], parts[2]);
+        return d.toISOString().split('T')[0];
+      }
+      return typeof v === 'string' ? v.substring(0,10) : '';
+    }
+
     const data = rows.slice(1).map(row => ({
-      data: row.c[0]?.v || '',
+      data: parseGvizDate(row.c[0]?.v),
       fineco: row.c[1]?.v || 0,
       ibkr: row.c[2]?.v || 0,
       ptf: row.c[3]?.v || 0,
@@ -1066,9 +1077,11 @@ async function loadFromSheet() {
       ytd: row.c[10]?.v || 0,
     })).filter(r => r.data && r.ptf > 0);
 
+    console.log('Portfolio: ' + data.length + ' righe caricate dal Sheet');
+    if (data.length === 0) { render(HISTORY); return; }
     render(data);
   } catch (e) {
-    console.warn('Sheet non raggiungibile, uso dati locali', e);
+    console.warn('Sheet non raggiungibile, uso dati locali:', e.message);
     render(HISTORY);
   }
 }
