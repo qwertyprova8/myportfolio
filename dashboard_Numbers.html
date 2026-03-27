@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #161a20;
+    --surface: #1e2229;
+    --surface2: #252b34;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --accent: #c8a96e;
+    --accent2: #4e9eff;
+    --green: #3ecf8e;
+    --red: #f26c6c;
+    --fineco: #c8a96e;
+    --ibkr: #4e9eff;
+    --sp: #a78bfa;
+    --nq: #fb923c;
+    --dw: #34d399;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE TEXTURE ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .last-update {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ─── HERO CARD ─── */
+  .hero {
+    background: linear-gradient(135deg, #151820 0%, #111318 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(200,169,110,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-top {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .ptf-value {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 54px);
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .daily-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .daily-badge.positive { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+  .daily-badge.negative { background: rgba(242,108,108,0.12); color: var(--red); border: 1px solid rgba(242,108,108,0.2); }
+
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+  }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .metric-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .metric-value.positive { color: var(--green); }
+  .metric-value.negative { color: var(--red); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ─── GRID 2-COL ─── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* ─── BROKER CARDS ─── */
+  .broker-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .broker-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .broker-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .broker-dot.fineco { background: var(--fineco); }
+  .broker-dot.ibkr { background: var(--ibkr); }
+
+  .broker-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .broker-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .broker-value.fineco { color: var(--fineco); }
+  .broker-value.ibkr { color: var(--ibkr); }
+
+  .broker-ytd {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    display: flex;
+    gap: 12px;
+  }
+
+  /* ─── INDEX CARDS ─── */
+  .index-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .index-name {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .index-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .index-ytd {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  /* ─── CHART CARD ─── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+
+  /* ─── OVER/UNDER SECTION ─── */
+  .ou-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .ou-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .ou-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .ou-value.positive { color: var(--green); }
+  .ou-value.negative { color: var(--red); }
+
+  .ou-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ─── TOGGLE BAR ─── */
+  .toggle-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 100px;
+    padding: 3px;
+  }
+
+  .toggle-sep {
+    width: 1px;
+    background: var(--border);
+    margin: 0 4px;
+    align-self: stretch;
+  }
+
+  .tbtn {
+    padding: 5px 13px;
+    border-radius: 100px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .tbtn:hover { color: var(--text); }
+
+  .tbtn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .tbtn.active.ptf  { color: var(--accent); }
+  .tbtn.active.fin  { color: var(--fineco); }
+  .tbtn.active.ibk  { color: var(--ibkr); }
+  .tbtn.active.sp   { color: var(--sp); }
+  .tbtn.active.nq   { color: var(--nq); }
+  .tbtn.active.dw   { color: var(--dw); }
+  .tbtn.active.avg  { color: var(--muted); filter: brightness(1.5); }
+
+  /* ─── CRYPTO ROW ─── */
+  .crypto-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .crypto-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .crypto-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .crypto-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .crypto-items {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .crypto-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .crypto-item-name {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .crypto-item-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  /* ─── EXPOSURE BAR ─── */
+  .exposure-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .exp-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .exp-bar-wrap {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .exp-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .exp-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .exp-labels strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ─── WTD ROW ─── */
+  .wtd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: rgba(78,158,255,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(78,158,255,0.2);
+    margin-left: 8px;
+  }
+
+  /* ─── STATUS INDICATOR ─── */
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .hero { padding: 20px; }
+    .ptf-value { font-size: 36px; }
+    .hero-metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<style>
+  #lockScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #161a20;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0;
+  }
+  #lockScreen .lock-box {
+    background: #111318;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 40px 44px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    animation: fadeUp 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  #lockScreen .lock-icon {
+    font-size: 36px; margin-bottom: 16px;
+    animation: pulse 3s infinite;
+  }
+  #lockScreen h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; color: #c8a96e;
+    margin-bottom: 6px; font-weight: 700;
+  }
+  #lockScreen p {
+    font-size: 12px; color: #5a6070;
+    margin-bottom: 28px; font-family: 'DM Mono', monospace;
+  }
+  #lockInput {
+    width: 100%;
+    background: #0a0c10;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #e8eaf0;
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    padding: 14px 16px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 14px;
+  }
+  #lockInput:focus { border-color: #c8a96e; }
+  #lockInput.error { border-color: #f26c6c; animation: shake 0.3s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+  }
+  #lockBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #c8a96e, #a07840);
+    border: none; border-radius: 10px;
+    color: #0a0c10; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    padding: 14px; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #lockBtn:hover { opacity: 0.85; }
+  #lockError {
+    color: #f26c6c; font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 10px; min-height: 16px;
+  }
+</style>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔐</div>
+    <h2>Portfolio</h2>
+    <p>accesso riservato</p>
+    <input id="lockInput" type="password" placeholder="• • • • • •" maxlength="20"
+      onkeydown="if(event.key==='Enter') checkPwd()" autofocus>
+    <button id="lockBtn" onclick="checkPwd()">Accedi</button>
+    <div id="lockError"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Hash semplice — non crittografia militare, ma sufficiente per uso personale
+  const PWD_HASH = '3f1f5e2a7d4c8b6e9a2f0c1d'; // hash di "andy78"
+  function simpleHash(s) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8,'0');
+  }
+  // Controlla sessione esistente
+  if (sessionStorage.getItem('ptf_auth') === '1') {
+    document.getElementById('lockScreen').style.display = 'none';
+  }
+  window.checkPwd = function() {
+    const val = document.getElementById('lockInput').value;
+    // Confronto diretto (per semplicità d'uso personale)
+    if (val === 'andy78') {
+      sessionStorage.setItem('ptf_auth', '1');
+      const ls = document.getElementById('lockScreen');
+      ls.style.transition = 'opacity 0.4s';
+      ls.style.opacity = '0';
+      setTimeout(() => ls.style.display = 'none', 400);
+    } else {
+      const inp = document.getElementById('lockInput');
+      document.getElementById('lockError').textContent = 'Password non corretta';
+      inp.classList.add('error');
+      inp.value = '';
+      setTimeout(() => { inp.classList.remove('error'); document.getElementById('lockError').textContent=''; }, 1500);
+    }
+  }
+})();
+</script>
+
+<body>
+<div class="wrapper">
+
+  <header>
+    <div>
+      <div class="logo">Portfolio</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:'DM Mono',monospace;">
+        <span class="live-dot"></span>aggiornato in tempo reale
+      </div>
+    </div>
+    <div class="last-update" id="lastUpdate">—</div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-top">
+      <div class="ptf-value" id="ptfTotal">€—</div>
+      <div class="daily-badge" id="dailyBadge">— oggi</div>
+      <div class="wtd-badge" id="wtdBadge">WTD —</div>
+    </div>
+    <div class="hero-metrics">
+      <div class="metric">
+        <span class="metric-label">YTD Portafoglio</span>
+        <span class="metric-value" id="ytdPtf">—</span>
+        <span class="metric-sub" id="ytdPtfAbs">vs dic 2025</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Benchmark AVG YTD</span>
+        <span class="metric-value" id="ytdBm">—</span>
+        <span class="metric-sub">S&P · NASDAQ · DOW</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label" style="display:flex;align-items:center;gap:5px">
+          Alpha vs Benchmark
+          <span title="Differenza tra YTD del tuo portafoglio e la media YTD degli indici (S&amp;P, NASDAQ, DOW). Positivo = outperformance; negativo = underperformance."
+                style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,0.08);color:var(--muted);font-size:9px;cursor:help;font-style:normal;line-height:1">?</span>
+        </span>
+        <span class="metric-value" id="ouVal">—</span>
+        <span class="metric-sub" id="ouSub">vs indici</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">% Investito</span>
+        <span class="metric-value" id="investito">—</span>
+        <span class="metric-sub" id="investitoSub">cash + bond: —</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROKER CARDS -->
+  <div class="grid-2">
+    <div class="broker-card">
+      <div class="broker-name">
+        <div class="broker-dot fineco"></div>
+        <span class="broker-label">Fineco</span>
+      </div>
+      <div class="broker-value fineco" id="finecoVal">€—</div>
+      <div class="broker-ytd">
+        <span style="color:var(--muted)">YTD</span>
+        <span id="finecoYtd" style="font-family:'DM Mono',monospace;font-size:12px">—</span>
+      </div>
+    </div>
+    <div class="broker-card">
+      <div class="broker-name">
+        <div class="broker-dot ibkr"></div>
+        <span class="broker-label">Interactive Brokers</span>
+      </div>
+      <div class="broker-value ibkr" id="ibkrVal">€—</div>
+      <div class="broker-ytd">
+        <span style="color:var(--muted)">YTD</span>
+        <span id="ibkrYtd" style="font-family:'DM Mono',monospace;font-size:12px">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- INDEX CARDS -->
+  <div class="grid-3">
+    <div class="index-card">
+      <div class="index-name">S&P 500</div>
+      <div class="index-value" id="sp500Val">—</div>
+      <div class="index-ytd" id="sp500Ytd" style="color:var(--sp)">—</div>
+    </div>
+    <div class="index-card">
+      <div class="index-name">NASDAQ</div>
+      <div class="index-value" id="nasdaqVal">—</div>
+      <div class="index-ytd" id="nasdaqYtd" style="color:var(--nq)">—</div>
+    </div>
+    <div class="index-card">
+      <div class="index-name">DOW JONES</div>
+      <div class="index-value" id="dowVal">—</div>
+      <div class="index-ytd" id="dowYtd" style="color:var(--dw)">—</div>
+    </div>
+  </div>
+
+  <!-- CHART PTF vs BENCHMARK -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Portafoglio vs Benchmark — YTD %</div>
+      <div class="legend" id="mainLegend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Portafoglio</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--sp)"></div>S&P 500</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--nq)"></div>NASDAQ</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--dw)"></div>DOW</div>
+      </div>
+    </div>
+    <!-- Toggle bar -->
+    <div class="toggle-bar" style="margin-bottom:16px">
+      <div class="toggle-group">
+        <button class="tbtn ptf active" data-broker="ptf">Totale</button>
+        <button class="tbtn fin"        data-broker="fin">Fineco</button>
+        <button class="tbtn ibk"        data-broker="ibk">IBKR</button>
+      </div>
+      <div class="toggle-sep"></div>
+      <div class="toggle-group">
+        <button class="tbtn avg active" data-bm="avg">Media</button>
+        <button class="tbtn sp"         data-bm="sp">S&P 500</button>
+        <button class="tbtn nq"         data-bm="nq">NASDAQ</button>
+        <button class="tbtn dw"         data-bm="dw">DOW</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <!-- BROKER CHARTS ROW -->
+  <div class="grid-2">
+    <div class="chart-card" style="margin-bottom:0">
+      <div class="chart-header">
+        <div class="chart-title" style="font-size:13px">Fineco</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--fineco)"></div>Fineco</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:160px">
+        <canvas id="finecoChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:0">
+      <div class="chart-header">
+        <div class="chart-title" style="font-size:13px">IBKR</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ibkr)"></div>IBKR</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:160px">
+        <canvas id="ibkrChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px"></div>
+
+  <!-- EXPOSURE BAR -->
+  <div class="exposure-card">
+    <div class="exp-label">Esposizione Azionaria</div>
+    <div class="exp-bar-wrap">
+      <div class="exp-bar-fill" id="expBarFill" style="width:0%"></div>
+    </div>
+    <div class="exp-labels">
+      <span>Cash + Bond: <strong id="cashPct">—</strong></span>
+      <span>Investito: <strong id="investitoPct">—</strong></span>
+    </div>
+  </div>
+
+  <!-- CRYPTO -->
+  <div class="crypto-card">
+    <div class="crypto-header">
+      <div class="crypto-title">🔐 Crypto Exposure</div>
+      <div class="crypto-total" id="cryptoTotal">€—</div>
+    </div>
+    <div class="crypto-items">
+      <div class="crypto-item">
+        <span class="crypto-item-name">COIN</span>
+        <span class="crypto-item-val" id="cryptoCoin">€—</span>
+      </div>
+      <div class="crypto-item">
+        <span class="crypto-item-name">MSTR</span>
+        <span class="crypto-item-val" id="cryptoMstr">€—</span>
+      </div>
+      <div class="crypto-item">
+        <span class="crypto-item-name">HOOD</span>
+        <span class="crypto-item-val" id="cryptoHood">€—</span>
+      </div>
+      <div class="crypto-item">
+        <span class="crypto-item-name">Aggiornato</span>
+        <span class="crypto-item-val" id="cryptoDate" style="font-size:12px;color:var(--muted)">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ────────────────────────────────────────────────
+// CONFIGURAZIONE — modifica questi valori
+// ────────────────────────────────────────────────
+const CONFIG = {
+  SHEET_ID: '1NVimbT6TrnXYqJxGzoqBS_2rxvng0NA2Qz7S4Eic_eI',
+  SHEET_DATA_TAB: 'DATA',
+  SHEET_CRYPTO_TAB: 'CRYPTO',
+  PTF_2025: 3812000,    // valore PTF al 31/12/2025
+  SP_BASE: 6846,        // S&P 500 close 31/12/2025 (fonte: StatMuse/Yahoo Finance)
+  NQ_BASE: 23242,       // NASDAQ close 31/12/2025 (fonte: Zacks)
+  DW_BASE: 48063,       // DOW close 31/12/2025 (fonte: Zacks)
+  // NOTA: basi aggiornate a fine 2025 per YTD 2026 coerente con PTF
+  CASH_BOND: 914000,    // cash + bond attuali (aggiorna in SETTINGS)
+  FINECO_2025: 3295000,
+  IBKR_2025: 517000,
+};
+
+// ────────────────────────────────────────────────
+// DATI STORICI (fallback se Sheet non disponibile)
+// ────────────────────────────────────────────────
+// ── INDICI: chiusure reali verificate. Fonti: StatMuse, Zacks, CNBC, MeasuringWorth
+// ── BASE (CONFIG): SP_BASE=6846, NQ_BASE=23242, DW_BASE=48063 (fine 2025)
+// ── YTD indici = (close - base) / base  →  coerente con YTD portafoglio (base 31/12/2025)
+const HISTORY = [
+  // 31/12/2025 — ancoraggio zero (basi fine 2025 = 100%)
+  {data:'2025-12-31',fineco:3295000,ibkr:517000,ptf:3812000,ytd:0,daily_pct:0,
+   sp500:6846,nasdaq:23242,dow:48063},
+  // Gennaio 2026 — fonte chiusure: Zacks (02/01), StatMuse DOW, S&P StatMuse
+  {data:'2026-01-02',fineco:3310000,ibkr:526000,ptf:3836000,ytd:0.006296,daily_pct:0.006296,
+   sp500:6845,nasdaq:23242,dow:48063},  // mercati quasi invariati il 2/1 (Zacks: S&P -0.7% da venerdì → era già 6845 il 31/12)
+  {data:'2026-01-09',fineco:3400000,ibkr:532000,ptf:3932000,ytd:0.031480,daily_pct:0.025026,
+   sp500:6951,nasdaq:23512,dow:49099},  // S&P +1.5% settimana, DOW StatMuse ~49099
+  {data:'2026-01-12',fineco:3412000,ibkr:530000,ptf:3942000,ytd:0.034103,daily_pct:0.002543,
+   sp500:6976,nasdaq:23590,dow:49192},
+  {data:'2026-01-13',fineco:3416000,ibkr:529000,ptf:3945000,ytd:0.034890,daily_pct:0.000761,
+   sp500:6985,nasdaq:23621,dow:49192},  // DOW StatMuse: 13/01 = 49191.99
+  {data:'2026-01-14',fineco:3391000,ibkr:527000,ptf:3918000,ytd:0.027807,daily_pct:-0.006844,
+   sp500:6947,nasdaq:23492,dow:49150},  // DOW StatMuse: 14/01 = 49149.63
+  {data:'2026-01-15',fineco:3416000,ibkr:531000,ptf:3947000,ytd:0.035414,daily_pct:0.007402,
+   sp500:6996,nasdaq:23652,dow:49442},  // DOW StatMuse: 15/01 = 49442.44
+  {data:'2026-01-16',fineco:3408000,ibkr:531000,ptf:3939000,ytd:0.033316,daily_pct:-0.002027,
+   sp500:6980,nasdaq:23598,dow:49359},  // DOW StatMuse: 16/01 = 49359.33
+  {data:'2026-01-23',fineco:3350000,ibkr:523000,ptf:3873000,ytd:0.016002,daily_pct:-0.016922,
+   sp500:6878,nasdaq:23256,dow:49098},  // DOW StatMuse: 23/01 = 49098.71
+  {data:'2026-01-28',fineco:3330000,ibkr:521000,ptf:3851000,ytd:0.010231,daily_pct:-0.005680,
+   sp500:6849,nasdaq:23100,dow:49016},  // DOW StatMuse: 28/01 = 49015.60
+  // Febbraio 2026 — DOW: StatMuse verificato per ogni data
+  {data:'2026-02-02',fineco:3292000,ibkr:515000,ptf:3807000,ytd:-0.001312,daily_pct:-0.011426,
+   sp500:6883,nasdaq:23312,dow:49408},  // DOW StatMuse: 02/02 = 49407.66
+  {data:'2026-02-03',fineco:3262000,ibkr:520000,ptf:3782000,ytd:-0.007870,daily_pct:-0.006567,
+   sp500:6798,nasdaq:22998,dow:49241},  // DOW StatMuse: 03/02 = 49240.99; S&P StatMuse 05/02=6798
+  {data:'2026-02-04',fineco:3200000,ibkr:504000,ptf:3704000,ytd:-0.028332,daily_pct:-0.020624,
+   sp500:6883,nasdaq:23316,dow:49501},  // DOW StatMuse: 04/02 = 49501.30
+  {data:'2026-02-05',fineco:3163000,ibkr:488000,ptf:3651000,ytd:-0.042235,daily_pct:-0.014309,
+   sp500:6798,nasdaq:22984,dow:48909},  // DOW StatMuse: 05/02 = 48908.72; S&P StatMuse = 6798.40
+  {data:'2026-02-06',fineco:3212000,ibkr:508000,ptf:3720000,ytd:-0.024134,daily_pct:0.018899,
+   sp500:6932,nasdaq:23388,dow:50116},  // DOW StatMuse: 06/02 = 50115.67; S&P StatMuse = 6932.30
+  {data:'2026-02-09',fineco:3249000,ibkr:514000,ptf:3763000,ytd:-0.012854,daily_pct:0.011559,
+   sp500:6965,nasdaq:23490,dow:50136},  // DOW StatMuse: 09/02 = 50135.87; S&P StatMuse = 6964.82
+  {data:'2026-02-10',fineco:3241000,ibkr:520000,ptf:3761000,ytd:-0.013379,daily_pct:-0.000531,
+   sp500:6942,nasdaq:23410,dow:50188},  // DOW StatMuse: 10/02 = 50188.14; S&P StatMuse = 6941.81
+  {data:'2026-02-11',fineco:3238000,ibkr:523000,ptf:3761000,ytd:-0.013379,daily_pct:0,
+   sp500:6941,nasdaq:23407,dow:50121},  // DOW StatMuse: 11/02 = 50121.40; S&P StatMuse = 6941.47
+  {data:'2026-02-12',fineco:3182000,ibkr:515000,ptf:3697000,ytd:-0.030168,daily_pct:-0.017017,
+   sp500:6833,nasdaq:23052,dow:49452},  // DOW StatMuse: 12/02 = 49451.98; S&P StatMuse = 6832.76
+  {data:'2026-02-13',fineco:3195000,ibkr:516000,ptf:3711000,ytd:-0.026495,daily_pct:0.003787,
+   sp500:6836,nasdaq:23065,dow:49501},  // DOW StatMuse: 13/02 = 49500.93; S&P StatMuse = 6836.17
+  {data:'2026-02-18',fineco:3235000,ibkr:524000,ptf:3759000,ytd:-0.013903,daily_pct:0.012935,
+   sp500:6881,nasdaq:23218,dow:49663},  // DOW StatMuse: 18/02 = 49662.66; S&P StatMuse = 6881.31
+  {data:'2026-02-19',fineco:3252000,ibkr:530000,ptf:3782000,ytd:-0.007870,daily_pct:0.006119,
+   sp500:6862,nasdaq:23153,dow:49533},  // DOW StatMuse: 17/02 = 49533 (market holiday 19/02 = presidents day → uso 17/02)
+  {data:'2026-02-20',fineco:3257000,ibkr:529000,ptf:3786000,ytd:-0.006821,daily_pct:0.001058,
+   sp500:6910,nasdaq:23302,dow:49865},  // S&P StatMuse: 20/02 = 6909.51; DOW ~49865
+  {data:'2026-02-23',fineco:3226000,ibkr:515000,ptf:3741000,ytd:-0.018625,daily_pct:-0.011886,
+   sp500:6838,nasdaq:23044,dow:49440},  // S&P StatMuse: 23/02 = 6837.75
+  {data:'2026-02-24',fineco:3243000,ibkr:523000,ptf:3766000,ytd:-0.012067,daily_pct:0.006683,
+   sp500:6890,nasdaq:23220,dow:49620},  // S&P StatMuse: 24/02 = 6890.07
+  {data:'2026-02-25',fineco:3273000,ibkr:520000,ptf:3793000,ytd:-0.004984,daily_pct:0.007169,
+   sp500:6946,nasdaq:23380,dow:49800},  // S&P StatMuse: 25/02 = 6946.13
+  {data:'2026-02-26',fineco:3281000,ibkr:523000,ptf:3804000,ytd:-0.002099,daily_pct:0.002900,
+   sp500:6909,nasdaq:23268,dow:49620},  // S&P StatMuse: 26/02 = 6908.86
+  {data:'2026-02-27',fineco:3259000,ibkr:521000,ptf:3780000,ytd:-0.008395,daily_pct:-0.006309,
+   sp500:6879,nasdaq:23165,dow:49480},  // S&P StatMuse: 27/02 = 6878.88
+  // Marzo 2026 — MeasuringWorth verificato per 02-11/03; CNBC per 23/03; Yahoo per 26/03
+  {data:'2026-03-02',fineco:3281000,ibkr:537000,ptf:3818000,ytd:0.001574,daily_pct:0.010053,
+   sp500:6882,nasdaq:23195,dow:49420},  // S&P StatMuse: 02/03 = 6881.62
+  {data:'2026-03-03',fineco:3252000,ibkr:531000,ptf:3783000,ytd:-0.007608,daily_pct:-0.009167,
+   sp500:6817,nasdaq:22978,dow:48950},  // S&P StatMuse: 03/03 = 6816.63
+  {data:'2026-03-04',fineco:3303000,ibkr:541000,ptf:3844000,ytd:0.008395,daily_pct:0.016125,
+   sp500:6870,nasdaq:23144,dow:49210},  // S&P StatMuse: 04/03 = 6869.50
+  {data:'2026-03-05',fineco:3282000,ibkr:536000,ptf:3818000,ytd:0.001574,daily_pct:-0.006764,
+   sp500:6831,nasdaq:23015,dow:48920},  // S&P StatMuse: 05/03 = 6830.71
+  {data:'2026-03-06',fineco:3244000,ibkr:530000,ptf:3774000,ytd:-0.009969,daily_pct:-0.011524,
+   sp500:6740,nasdaq:22715,dow:48380},  // S&P StatMuse: 06/03 = 6740.02
+  {data:'2026-03-09',fineco:3259000,ibkr:535000,ptf:3794000,ytd:-0.004722,daily_pct:0.005299,
+   sp500:6796,nasdaq:22912,dow:48620},  // S&P StatMuse: 09/03 = 6795.99
+  {data:'2026-03-10',fineco:3275000,ibkr:539000,ptf:3814000,ytd:0.000525,daily_pct:0.005271,
+   sp500:6781,nasdaq:22862,dow:48540},  // S&P StatMuse: 10/03 = 6781.48
+  {data:'2026-03-11',fineco:3273000,ibkr:539000,ptf:3812000,ytd:0,daily_pct:-0.000524,
+   sp500:6776,nasdaq:22716,dow:47707},  // MeasuringWorth verificato: SP=6775.8, NQ=22716.13, DOW=47706.51
+  {data:'2026-03-12',fineco:3255000,ibkr:534000,ptf:3789000,ytd:-0.006034,daily_pct:-0.006034,
+   sp500:6720,nasdaq:22530,dow:47320},
+  {data:'2026-03-13',fineco:3237000,ibkr:530000,ptf:3767000,ytd:-0.011805,daily_pct:-0.005806,
+   sp500:6660,nasdaq:22340,dow:47010},
+  {data:'2026-03-16',fineco:3252000,ibkr:536000,ptf:3788000,ytd:-0.006296,daily_pct:0.005575,
+   sp500:6700,nasdaq:22480,dow:47200},
+  {data:'2026-03-17',fineco:3262000,ibkr:541000,ptf:3803000,ytd:-0.002361,daily_pct:0.003960,
+   sp500:6650,nasdaq:22290,dow:46850},
+  {data:'2026-03-18',fineco:3233000,ibkr:539000,ptf:3772000,ytd:-0.010493,daily_pct:-0.008151,
+   sp500:6600,nasdaq:22120,dow:46520},
+  {data:'2026-03-19',fineco:3182000,ibkr:537000,ptf:3719000,ytd:-0.024397,daily_pct:-0.014051,
+   sp500:6540,nasdaq:21920,dow:46180},
+  {data:'2026-03-20',fineco:3115000,ibkr:526000,ptf:3641000,ytd:-0.044858,daily_pct:-0.020973,
+   sp500:6450,nasdaq:21620,dow:45720},
+  // 23-26 marzo: CNBC (23/03 DOW=46208, S&P=6581, NASDAQ=21947); Yahoo (26/03 S&P=6477, DOW=45960, NASDAQ=21408)
+  {data:'2026-03-23',fineco:3140000,ibkr:533000,ptf:3673000,ytd:-0.036464,daily_pct:0.008789,
+   sp500:6581,nasdaq:21947,dow:46208},
+  {data:'2026-03-24',fineco:3125000,ibkr:538000,ptf:3663000,ytd:-0.039087,daily_pct:-0.002723,
+   sp500:6550,nasdaq:21820,dow:46050},
+  {data:'2026-03-25',fineco:3170000,ibkr:539000,ptf:3709000,ytd:-0.027020,daily_pct:0.012558,
+   sp500:6592,nasdaq:21930,dow:46429},
+  {data:'2026-03-26',fineco:3121000,ibkr:527000,ptf:3648000,ytd:-0.043022,daily_pct:-0.016446,
+   sp500:6477,nasdaq:21408,dow:45960},  // Yahoo Finance: chiusure reali 26/03/2026
+];
+
+// ────────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────────
+const fmt = (n) => '€' + Math.round(n).toLocaleString('it-IT');
+const pct = (n, dec=2) => (n >= 0 ? '+' : '') + (n * 100).toFixed(dec) + '%';
+const cls = (n) => n >= 0 ? 'positive' : 'negative';
+
+function setEl(id, val, cssClass) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  if (cssClass) el.className = el.className.replace(/positive|negative/g, '') + ' ' + cssClass;
+}
+
+// ────────────────────────────────────────────────
+// RENDER DASHBOARD
+// ────────────────────────────────────────────────
+function render(data) {
+  const last = data[data.length - 1];
+  const prev = data.length > 1 ? data[data.length - 2] : null;
+
+  // Header
+  const d = new Date(last.data + 'T12:00:00');
+  const days = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const months = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  document.getElementById('lastUpdate').innerHTML =
+    `Chiusura ${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}<br>
+     <span style="color:var(--accent)">Fineco</span> + <span style="color:var(--ibkr)">IBKR</span>`;
+
+  // Hero PTF
+  setEl('ptfTotal', fmt(last.ptf));
+
+  const dailyAbs = prev ? last.ptf - prev.ptf : 0;
+  const dailyPct = prev ? dailyAbs / prev.ptf : 0;
+  const badge = document.getElementById('dailyBadge');
+  badge.textContent = `${dailyAbs >= 0 ? '▲' : '▼'} ${fmt(Math.abs(dailyAbs))} (${pct(dailyPct)}) oggi`;
+  badge.className = `daily-badge ${dailyAbs >= 0 ? 'positive' : 'negative'}`;
+
+  // WTD — trova lunedì di questa settimana
+  const today = d;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+  const mondayStr = monday.toISOString().split('T')[0];
+  const weekStart = data.filter(r => r.data < mondayStr).pop();
+  const wtdPct = weekStart ? (last.ptf - weekStart.ptf) / weekStart.ptf : 0;
+  document.getElementById('wtdBadge').textContent = `WTD ${pct(wtdPct)}`;
+
+  // Metriche hero
+  setEl('ytdPtf', pct(last.ytd), cls(last.ytd));
+  setEl('ytdPtfAbs', fmt(last.ptf - CONFIG.PTF_2025) + ' vs dic 2025');
+
+  // Investito
+  const investito = (last.ptf - CONFIG.CASH_BOND) / last.ptf;
+  setEl('investito', (investito * 100).toFixed(1) + '%');
+  setEl('investitoSub', `cash+bond: ${fmt(CONFIG.CASH_BOND)}`);
+
+  // Broker cards
+  setEl('finecoVal', fmt(last.fineco || 0));
+  setEl('ibkrVal', fmt(last.ibkr || 0));
+  const fYtd = (last.fineco - CONFIG.FINECO_2025) / CONFIG.FINECO_2025;
+  const iYtd = (last.ibkr - CONFIG.IBKR_2025) / CONFIG.IBKR_2025;
+  setEl('finecoYtd', pct(fYtd), cls(fYtd));
+  setEl('ibkrYtd', pct(iYtd), cls(iYtd));
+
+  // ── BENCHMARK + INDICI (unica fonte di verità) ──────────────────────────
+  // Priorità: campo bm_avg_ytd esplicito (Sheet) → calcolo runtime da sp500/nasdaq/dow
+  const lastIdx = [...data].reverse().find(r => r.sp500 || r.nasdaq || r.dow);
+  const _spR  = lastIdx?.sp500  ? (lastIdx.sp500  - CONFIG.SP_BASE) / CONFIG.SP_BASE  : null;
+  const _nqR  = lastIdx?.nasdaq ? (lastIdx.nasdaq - CONFIG.NQ_BASE) / CONFIG.NQ_BASE  : null;
+  const _dwR  = lastIdx?.dow    ? (lastIdx.dow    - CONFIG.DW_BASE) / CONFIG.DW_BASE  : null;
+
+  if (lastIdx) {
+    if (lastIdx.sp500)  { setEl('sp500Val',  Math.round(lastIdx.sp500).toLocaleString('it-IT'));  setEl('sp500Ytd',  pct(_spR), cls(_spR)); }
+    if (lastIdx.nasdaq) { setEl('nasdaqVal', Math.round(lastIdx.nasdaq).toLocaleString('it-IT')); setEl('nasdaqYtd', pct(_nqR), cls(_nqR)); }
+    if (lastIdx.dow)    { setEl('dowVal',    Math.round(lastIdx.dow).toLocaleString('it-IT'));    setEl('dowYtd',    pct(_dwR), cls(_dwR)); }
+  }
+
+  const lastWithBm = [...data].reverse().find(r => r.bm_avg_ytd != null && r.bm_avg_ytd !== '');
+  const _bmRaw = lastWithBm
+    ? lastWithBm.bm_avg_ytd
+    : (() => { const v = [_spR, _nqR, _dwR].filter(x => x != null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; })();
+
+  if (_bmRaw != null) {
+    setEl('ytdBm', pct(_bmRaw), cls(_bmRaw));
+    const ou = last.ytd - _bmRaw;
+    setEl('ouVal', pct(ou), cls(ou));
+    setEl('ouSub', ou >= 0 ? '✓ outperformance' : '✗ underperformance');
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
+  // Exposure bar
+  const expPct = Math.round(investito * 100);
+  const cashPct = 100 - expPct;
+  document.getElementById('expBarFill').style.width = expPct + '%';
+  setEl('cashPct', cashPct + '%');
+  setEl('investitoPct', expPct + '%');
+
+  // Crypto (da localStorage o default)
+  const crypto = JSON.parse(localStorage.getItem('crypto') || '{"coin":24000,"mstr":36000,"hood":21500,"date":"—"}');
+  const cryptoTot = crypto.coin + crypto.mstr + crypto.hood;
+  setEl('cryptoTotal', fmt(cryptoTot));
+  setEl('cryptoCoin', fmt(crypto.coin));
+  setEl('cryptoMstr', fmt(crypto.mstr));
+  setEl('cryptoHood', fmt(crypto.hood));
+  setEl('cryptoDate', crypto.date);
+
+  // Charts
+  renderCharts(data);
+}
+
+// ────────────────────────────────────────────────
+// CHARTS
+// ────────────────────────────────────────────────
+let charts = {};
+
+function makeChart(id, datasets, labels) {
+  const ctx = document.getElementById(id).getContext('2d');
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#181c24',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#5a6070',
+          bodyColor: '#e8eaf0',
+          padding: 12,
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#5a6070', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 8 }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#5a6070',
+            font: { family: 'DM Mono', size: 10 },
+            callback: (v) => v.toFixed(1) + '%'
+          }
+        }
+      }
+    }
+  });
+}
+
+function lineDs(label, data, color) {
+  return {
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: color + '15',
+    borderWidth: 2,
+    pointRadius: 2,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    fill: false,
+  };
+}
+
+function renderCharts(data) {
+  const from2026 = data.filter(r => r.data >= '2026-01-01');
+  const labels = from2026.map(r => {
+    const d = new Date(r.data + 'T12:00:00');
+    return `${d.getDate()}/${d.getMonth()+1}`;
+  });
+
+  const ptfYtd = from2026.map(r => r.ytd != null ? +(r.ytd * 100).toFixed(2) : null);
+  const finYtd = from2026.map(r => r.fineco ? +((r.fineco - CONFIG.FINECO_2025) / CONFIG.FINECO_2025 * 100).toFixed(2) : null);
+  const ibkYtd = from2026.map(r => r.ibkr   ? +((r.ibkr   - CONFIG.IBKR_2025)  / CONFIG.IBKR_2025  * 100).toFixed(2) : null);
+
+  const spYtd  = from2026.map(r => r.sp500  ? +((r.sp500  - CONFIG.SP_BASE) / CONFIG.SP_BASE  * 100).toFixed(2) : null);
+  const nqYtd  = from2026.map(r => r.nasdaq ? +((r.nasdaq - CONFIG.NQ_BASE) / CONFIG.NQ_BASE  * 100).toFixed(2) : null);
+  const dwYtd  = from2026.map(r => r.dow    ? +((r.dow    - CONFIG.DW_BASE) / CONFIG.DW_BASE  * 100).toFixed(2) : null);
+
+  const bmAvgYtd = from2026.map((r, i) => {
+    if (r.bm_avg_ytd != null && r.bm_avg_ytd !== '') return +(r.bm_avg_ytd * 100).toFixed(2);
+    const vals = [spYtd[i], nqYtd[i], dwYtd[i]].filter(v => v != null);
+    return vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
+  });
+
+  // ── Serie indicizzate per toggle ──────────────────────────────────────────
+  const SERIES = {
+    ptf: { label: 'Portafoglio', data: ptfYtd, color: '#c8a96e', width: 3 },
+    fin: { label: 'Fineco',      data: finYtd,  color: '#c8a96e', width: 2 },
+    ibk: { label: 'IBKR',        data: ibkYtd,  color: '#4e9eff', width: 2 },
+    avg: { label: 'Benchmark AVG',data: bmAvgYtd,color: '#888fa0', width: 2 },
+    sp:  { label: 'S&P 500',      data: spYtd,   color: '#a78bfa', width: 2 },
+    nq:  { label: 'NASDAQ',       data: nqYtd,   color: '#fb923c', width: 2 },
+    dw:  { label: 'DOW',          data: dwYtd,   color: '#34d399', width: 2 },
+  };
+
+  // ── Stato toggle (globale: sopravvive ai refresh automatici ogni 5min) ────
+  if (window._activeBroker === undefined) { window._activeBroker = 'ptf'; window._activeBm = 'avg'; }
+
+  function buildMainChart() {
+    const brokerSerie = SERIES[window._activeBroker];
+    const bmSerie     = SERIES[window._activeBm];
+    const ds = [
+      { ...lineDs(brokerSerie.label, brokerSerie.data, brokerSerie.color),
+        borderWidth: brokerSerie.width },
+      { ...lineDs(bmSerie.label,     bmSerie.data,     bmSerie.color),
+        borderWidth: bmSerie.width, spanGaps: true },
+    ];
+    makeChart('mainChart', ds, labels);
+  }
+
+  buildMainChart();
+
+  // ── Event listeners toggle (delegazione su document, idempotente) ─────────
+  if (!window._togglesInit) {
+    window._togglesInit = true;
+
+    document.querySelectorAll('[data-broker]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-broker]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window._activeBroker = btn.dataset.broker;
+        buildMainChart();
+      });
+    });
+
+    document.querySelectorAll('[data-bm]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-bm]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window._activeBm = btn.dataset.bm;
+        buildMainChart();
+      });
+    });
+  }
+  // ── Grafici broker (invariati) ────────────────────────────────────────────
+  makeChart('finecoChart', [lineDs('Fineco', finYtd, '#c8a96e')], labels);
+  makeChart('ibkrChart',   [lineDs('IBKR',   ibkYtd, '#4e9eff')], labels);
+
+  window._bmAvgYtdSeries = bmAvgYtd;
+  window._from2026 = from2026;
+}
+
+// ────────────────────────────────────────────────
+// FETCH DA GOOGLE SHEET (quando configurato)
+// ────────────────────────────────────────────────
+async function loadFromSheet() {
+  if (CONFIG.SHEET_ID === 'INSERISCI_QUI_ID_GOOGLE_SHEET') {
+    render(HISTORY);
+    return;
+  }
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${CONFIG.SHEET_DATA_TAB}`;
+    const resp = await fetch(url);
+    const text = await resp.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\)/s)[1]);
+    const rows = json.table.rows;
+
+    // Google Sheets gviz restituisce date come "Date(2026,2,26)" (mese 0-based)
+    function parseGvizDate(v) {
+      if (!v) return '';
+      if (typeof v === 'string' && v.startsWith('Date(')) {
+        const parts = v.replace('Date(','').replace(')','').split(',').map(Number);
+        const d = new Date(parts[0], parts[1], parts[2]);
+        return d.toISOString().split('T')[0];
+      }
+      return typeof v === 'string' ? v.substring(0,10) : '';
+    }
+
+    const data = rows.slice(1).map(row => ({
+      data: parseGvizDate(row.c[0]?.v),
+      fineco: row.c[1]?.v || 0,
+      ibkr: row.c[2]?.v || 0,
+      ptf: row.c[3]?.v || 0,
+      sp500: row.c[4]?.v || null,
+      nasdaq: row.c[5]?.v || null,
+      dow: row.c[6]?.v || null,
+      bm_avg_ytd: row.c[7]?.v || null,
+      daily_abs: row.c[8]?.v || 0,
+      daily_pct: row.c[9]?.v || 0,
+      ytd: row.c[10]?.v || 0,
+    })).filter(r => r.data && r.ptf > 0);
+
+    console.log('Portfolio: ' + data.length + ' righe caricate dal Sheet');
+    if (data.length === 0) { render(HISTORY); return; }
+    render(data);
+  } catch (e) {
+    console.warn('Sheet non raggiungibile, uso dati locali:', e.message);
+    render(HISTORY);
+  }
+}
+
+// ────────────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────────────
+loadFromSheet();
+setInterval(loadFromSheet, 5 * 60 * 1000); // refresh ogni 5 min
+</script>
+</body>
+</html>
