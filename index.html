@@ -1220,8 +1220,6 @@ function renderCharts(data) {
 // FETCH DA GOOGLE SHEET (quando configurato)
 // ────────────────────────────────────────────────
 async function loadFromSheet() {
-  render(HISTORY);
-  return;
   try {
     const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${CONFIG.SHEET_DATA_TAB}`;
     const resp = await fetch(url);
