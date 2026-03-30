@@ -1239,20 +1239,22 @@ async function loadFromSheet() {
       }
       return typeof v === 'string' ? v.substring(0,10) : '';
     }
-    const data = rows.slice(1).map(row => ({
-      data: parseGvizDate(row.c[0]?.v),
-      fineco: row.c[1]?.v || 0,
-      ibkr: row.c[2]?.v || 0,
-      ptf: row.c[3]?.v || 0,
-      sp500: row.c[4]?.v || null,
-      nasdaq: row.c[5]?.v || null,
-      dow: row.c[6]?.v || null,
-      bm_avg_ytd: row.c[7]?.v || null,
-      daily_abs: row.c[8]?.v || 0,
-      daily_pct: row.c[9]?.v || 0,
-      ytd: row.c[10]?.v || 0,
-    })).filter(r => r.data && r.ptf > 0);
-
+ const data = rows.slice(1).map(row => {
+      const ptf = row.c[3]?.v || 0;
+      return {
+        data: parseGvizDate(row.c[0]?.v),
+        fineco: row.c[1]?.v || 0,
+        ibkr: row.c[2]?.v || 0,
+        ptf,
+        sp500: row.c[4]?.v || null,
+        nasdaq: row.c[5]?.v || null,
+        dow: row.c[6]?.v || null,
+        bm_avg_ytd: row.c[7]?.v || null,
+        daily_abs: row.c[8]?.v || 0,
+        daily_pct: row.c[9]?.v || 0,
+        ytd: ptf > 0 ? (ptf - CONFIG.PTF_2025) / CONFIG.PTF_2025 : 0,
+      };
+    }).filter(r => r.data && r.ptf > 0);
     console.log('Portfolio: ' + data.length + ' righe caricate dal Sheet');
     if (data.length === 0) { render(HISTORY); return; }
     render(data);
