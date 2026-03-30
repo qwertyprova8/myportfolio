@@ -1257,7 +1257,7 @@ async function loadFromSheet() {
     }).filter(r => r.data && r.ptf > 0);
 // Arricchisce le righe Sheet con indici da HISTORY dove mancanti
     data.forEach(row => {
-      if (!row.sp500 && !row.nasdaq && !row.dow) {
+     if (!row.sp500 || row.sp500 < 5000) {
         const h = HISTORY.find(r => r.data === row.data);
         if (h) {
           row.sp500  = h.sp500  || null;
