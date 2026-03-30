@@ -1172,7 +1172,7 @@ function renderCharts(data) {
   // ── Stato toggle (globale: sopravvive ai refresh automatici ogni 5min) ────
   if (window._activeBroker === undefined) { window._activeBroker = 'ptf'; window._activeBm = 'avg'; }
 
-  function buildMainChart() {
+  window._buildMainChart = function() {
     const brokerSerie = SERIES[window._activeBroker];
     const bmSerie     = SERIES[window._activeBm];
     const ds = [
@@ -1182,11 +1182,10 @@ function renderCharts(data) {
         borderWidth: bmSerie.width, spanGaps: true },
     ];
     makeChart('mainChart', ds, labels);
-  }
+  };
 
-  buildMainChart();
+  window._buildMainChart();
 
-  // ── Event listeners toggle (delegazione su document, idempotente) ─────────
   if (!window._togglesInit) {
     window._togglesInit = true;
 
@@ -1195,7 +1194,7 @@ function renderCharts(data) {
         document.querySelectorAll('[data-broker]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         window._activeBroker = btn.dataset.broker;
-        buildMainChart();
+        if (window._buildMainChart) window._buildMainChart();
       });
     });
 
@@ -1204,7 +1203,7 @@ function renderCharts(data) {
         document.querySelectorAll('[data-bm]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         window._activeBm = btn.dataset.bm;
-        buildMainChart();
+        if (window._buildMainChart) window._buildMainChart();
       });
     });
   }
@@ -1228,16 +1227,18 @@ async function loadFromSheet() {
     const rows = json.table.rows;
 
     // Google Sheets gviz restituisce date come "Date(2026,2,26)" (mese 0-based)
-    function parseGvizDate(v) {
+   function parseGvizDate(v) {
       if (!v) return '';
       if (typeof v === 'string' && v.startsWith('Date(')) {
         const parts = v.replace('Date(','').replace(')','').split(',').map(Number);
         const d = new Date(parts[0], parts[1], parts[2]);
-        return d.toISOString().split('T')[0];
+        const year  = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day   = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       }
       return typeof v === 'string' ? v.substring(0,10) : '';
     }
-
     const data = rows.slice(1).map(row => ({
       data: parseGvizDate(row.c[0]?.v),
       fineco: row.c[1]?.v || 0,
